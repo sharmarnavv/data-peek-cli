@@ -6,6 +6,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 from rich.text import Text
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 app = typer.Typer(help="Peek: High-performance CLI for data inspection.")
 console = Console()
@@ -201,6 +202,67 @@ def plot(
 
     except Exception as e:
         console.print(f"[bold red]Error plotting:[/bold red] {e}")
+
+@app.command()
+def sentiment(
+    file_path: str = typer.Argument(..., help="Path to the CSV file"),
+    col: str = typer.Option(..., help="Text column to analyze"),
+    limit: int = typer.Option(2000, help="Max rows to analyze (VADER is slow on CPU)"),
+):
+    """
+    NLP: Scans a text column and plots sentiment distribution (Positive/Neutral/Negative).
+    """
+    if not os.path.exists(file_path):
+        console.print(f"[bold red]Error:[/bold red] File '{file_path}' not found.")
+        raise typer.Exit(code=1)
+
+    console.print(f"[bold cyan]Scanning sentiment for column:[/bold cyan] '{col}' (Limit: {limit} rows)...")
+    
+    try:
+        # 1. Load Data (Limit rows for performance)
+        df = pl.read_csv(file_path, columns=[col], n_rows=limit)
+        
+        analyzer = SentimentIntensityAnalyzer()
+        scores = []
+        categories = {"Positive": 0, "Neutral": 0, "Negative": 0}
+        
+        from rich.progress import track
+        
+        texts = df[col].drop_nulls().to_list()
+
+        for text in track(texts, description="Analyzing text..."):
+            score = analyzer.polarity_scores(str(text))["compound"]
+            scores.append(score)
+            
+            if score >= 0.05:
+                categories["Positive"] += 1
+            elif score <= -0.05:
+                categories["Negative"] += 1
+            else:
+                categories["Neutral"] += 1
+
+        avg_sentiment = sum(scores) / len(scores) if scores else 0
+        
+        # Color-code the average
+        if avg_sentiment > 0.05:
+            sent_str = f"[green]Positive ({avg_sentiment:.2f})[/green]"
+        elif avg_sentiment < -0.05:
+            sent_str = f"[red]Negative ({avg_sentiment:.2f})[/red]"
+        else:
+            sent_str = f"[yellow]Neutral ({avg_sentiment:.2f})[/yellow]"
+
+        console.print(f"\n[bold]Average Sentiment:[/bold] {sent_str}")
+        console.print(f"[dim]Based on sample of {len(texts)} rows[/dim]\n")
+
+        # bar chart
+        plt.clear_figure()
+        plt.theme("pro")
+        plt.simple_bar(list(categories.keys()), list(categories.values()), width=60)
+        plt.title(f"Sentiment Distribution: {col}")
+        plt.show()
+
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
 
 if __name__ == "__main__":
     app()
