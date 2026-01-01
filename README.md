@@ -3,7 +3,6 @@
 ![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![Engine](https://img.shields.io/badge/Engine-Polars_⚡-FF7F00?style=for-the-badge&logo=polars&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-Active_Dev-success?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
 > **Stop spinning up Jupyter just to check a CSV.**
 
