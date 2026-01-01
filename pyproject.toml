@@ -1,7 +1,39 @@
 [project]
 name = "peek-cli"
 version = "0.1.0"
-description = "Add your description here"
+description = "A lightning-fast CLI for inspecting CSVs and datasets in the terminal."
 readme = "README.md"
-requires-python = ">=3.11"
-dependencies = []
+requires-python = ">=3.9"
+authors = [
+    { name = "Arnav Sharma" }
+]
+keywords = ["data-science", "cli", "csv", "terminal", "eda", "rich"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Environment :: Console",
+]
+dependencies = [
+    "plotext>=5.3.2",
+    "polars>=1.36.1",
+    "rich>=14.2.0",
+    "typer>=0.21.0",
+]
+
+[project.scripts]
+peek = "peek.main:app"
+
+[tool.uv]
+package = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["peek"]
