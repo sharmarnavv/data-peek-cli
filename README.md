@@ -1,5 +1,6 @@
 # Peek ⚡
 
+[![PyPI](https://img.shields.io/pypi/v/peek-cli?style=for-the-badge&color=blue)](https://pypi.org/project/peek-cli/)
 ![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![Engine](https://img.shields.io/badge/Engine-Polars_⚡-FF7F00?style=for-the-badge&logo=polars&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-Active_Dev-success?style=for-the-badge)
