@@ -52,6 +52,14 @@ peek plot data.csv --col category
 peek plot data.csv --col price --y-col rating --title "Price vs Rating"
 ```
 
+### 4. NLP (`sentiment`)
+Scan a text column to view sentiment distribution (Positive/Neutral/Negative) using VADER.
+
+```bash
+peek sentiment reviews.csv --col review_text
+```
+*Output: Average sentiment score and a terminal-based distribution chart.*
+
 ---
 
 ## 🏗️ Tech Stack
