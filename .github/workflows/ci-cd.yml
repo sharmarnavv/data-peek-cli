@@ -38,10 +38,6 @@ jobs:
       id-token: write
       contents: read
 
-    environment:
-      name: testpypi
-      url: https://test.pypi.org/p/peek-cli
-
     steps:
     - uses: actions/checkout@v4
 
