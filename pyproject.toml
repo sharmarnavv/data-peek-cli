@@ -1,6 +1,6 @@
 [project]
 name = "peek-cli"
-version = "0.1.2"
+version = "0.1.3"
 description = "A lightning-fast CLI for inspecting CSVs and datasets in the terminal."
 readme = "README.md"
 requires-python = ">=3.9"
