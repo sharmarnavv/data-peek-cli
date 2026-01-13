@@ -2,6 +2,7 @@ import typer
 import polars as pl
 import plotext as plt
 import os
+from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
@@ -29,7 +30,8 @@ def view(
     """
     Instantly view the top N rows (or tail) using Polars Lazy loading.
     """
-    if not os.path.exists(file_path):
+    path=Path(file_path).expanduser().resolve()
+    if not path.exists():
         console.print(f"[bold red]Error:[/bold red] File '{file_path}' not found.")
         raise typer.Exit(code=1)
 
