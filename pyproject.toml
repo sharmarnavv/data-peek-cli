@@ -18,8 +18,13 @@ dependencies = [
     "polars>=1.36.1",
     "rich>=14.2.0",
     "typer>=0.21.0",
+]
+
+[project.optional-dependencies]
+nlp = [
     "vadersentiment>=3.3.2",
 ]
+
 
 [project.scripts]
 peek = "peek.main:app"

@@ -262,13 +262,17 @@ wheels = [
 
 [[package]]
 name = "peek-cli"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "." }
 dependencies = [
     { name = "plotext" },
     { name = "polars" },
     { name = "rich" },
     { name = "typer" },
+]
+
+[package.optional-dependencies]
+nlp = [
     { name = "vadersentiment" },
 ]
 
@@ -284,8 +288,9 @@ requires-dist = [
     { name = "polars", specifier = ">=1.36.1" },
     { name = "rich", specifier = ">=14.2.0" },
     { name = "typer", specifier = ">=0.21.0" },
-    { name = "vadersentiment", specifier = ">=3.3.2" },
+    { name = "vadersentiment", marker = "extra == 'nlp'", specifier = ">=3.3.2" },
 ]
+provides-extras = ["nlp"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=8.4.2" }]

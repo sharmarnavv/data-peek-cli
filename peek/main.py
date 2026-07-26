@@ -7,7 +7,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 from rich.text import Text
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
 
 app = typer.Typer(help="Peek: High-performance CLI for data inspection.")
 console = Console()
@@ -25,7 +25,8 @@ def get_file_size(path: str) -> str:
 def view(
     file_path: str = typer.Argument(..., help="Path to the CSV file"),
     rows: int = typer.Option(10, help="Number of rows to view"),
-    tail: bool = typer.Option(False, help="View the end of the file instead of the start")
+    tail: bool = typer.Option(False, help="View the end of the file instead of the start"),
+    infer_schema_length: int = typer.Option(10000, help="Number of rows to scan for schema inference")
 ):
     """
     Instantly view the top N rows (or tail) using Polars Lazy loading.
@@ -37,7 +38,7 @@ def view(
 
     try:
         # Create a LazyFrame (doesn't read file yet)
-        lf = pl.scan_csv(file_path)
+        lf = pl.scan_csv(file_path, infer_schema_length=infer_schema_length)
 
         if tail:
             # Polars optimizes 'tail' without reading the whole file into RAM
@@ -68,7 +69,8 @@ def view(
 
 @app.command()
 def describe(
-    file_path: str = typer.Argument(..., help="Path to the CSV file")
+    file_path: str = typer.Argument(..., help="Path to the CSV file"),
+    infer_schema_length: int = typer.Option(10000, help="Number of rows to scan for schema inference")
 ):
     """
     Health Report: Smart analysis with heuristics for data quality issues.
@@ -80,7 +82,7 @@ def describe(
     console.print(f"[bold cyan]Peeking at:[/bold cyan] {file_path} ({get_file_size(file_path)})")
     
     try:
-        lf = pl.scan_csv(file_path)
+        lf = pl.scan_csv(file_path, infer_schema_length=infer_schema_length)
         
         # 1. Parallel Stat Collection
         # We need Total Rows, Null Counts, and N_Unique for every column.
@@ -157,7 +159,8 @@ def plot(
     col: str = typer.Option(..., help="Column to plot (X-axis)"),
     y_col: str = typer.Option(None, help="Column for Y-axis (optional, for scatter plots)"),
     bins: int = typer.Option(10, help="Number of bins for histograms"),
-    title: str = typer.Option(None, help="Custom title")
+    title: str = typer.Option(None, help="Custom title"),
+    infer_schema_length: int = typer.Option(10000, help="Number of rows to scan for schema inference")
 ):
     """
     Visuals: Plots using Polars data.
@@ -172,7 +175,7 @@ def plot(
         if y_col:
             required_cols.append(y_col)
             
-        df = pl.read_csv(file_path, columns=required_cols)
+        df = pl.read_csv(file_path, columns=required_cols, infer_schema_length=infer_schema_length)
         
         if col not in df.columns:
              console.print(f"[bold red]Error:[/bold red] Column '{col}' not found.")
@@ -210,6 +213,7 @@ def sentiment(
     file_path: str = typer.Argument(..., help="Path to the CSV file"),
     col: str = typer.Option(..., help="Text column to analyze"),
     limit: int = typer.Option(2000, help="Max rows to analyze (VADER is slow on CPU)"),
+    infer_schema_length: int = typer.Option(10000, help="Number of rows to scan for schema inference")
 ):
     """
     NLP: Scans a text column and plots sentiment distribution (Positive/Neutral/Negative).
@@ -218,11 +222,20 @@ def sentiment(
         console.print(f"[bold red]Error:[/bold red] File '{file_path}' not found.")
         raise typer.Exit(code=1)
 
+    try:
+        from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+    except ImportError:
+        console.print(
+            "[bold red]Error:[/bold red] Sentiment analysis requires the 'nlp' extra.\n"
+            "Please install it using: [bold cyan]uv pip install 'peek-cli\\[nlp]'[/bold cyan] (or [bold cyan]pip install 'peek-cli\\[nlp]'[/bold cyan])"
+        )
+        raise typer.Exit(code=1)
+
     console.print(f"[bold cyan]Scanning sentiment for column:[/bold cyan] '{col}' (Limit: {limit} rows)...")
     
     try:
         # 1. Load Data (Limit rows for performance)
-        df = pl.read_csv(file_path, columns=[col], n_rows=limit)
+        df = pl.read_csv(file_path, columns=[col], n_rows=limit, infer_schema_length=infer_schema_length)
         
         analyzer = SentimentIntensityAnalyzer()
         scores = []

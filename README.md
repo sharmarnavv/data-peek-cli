@@ -19,6 +19,22 @@
 
 ---
 
+## 📥 Installation
+
+```bash
+# Default lightweight installation
+pip install peek-cli
+# or with uv
+uv pip install peek-cli
+
+# With optional NLP sentiment analysis support
+pip install "peek-cli[nlp]"
+# or with uv
+uv pip install "peek-cli[nlp]"
+```
+
+---
+
 ## 🛠️ Usage
 
 ### 1. View Data
@@ -54,7 +70,7 @@ peek plot data.csv --col price --y-col rating --title "Price vs Rating"
 ```
 
 ### 4. NLP (`sentiment`)
-Scan a text column to view sentiment distribution (Positive/Neutral/Negative) using VADER.
+Scan a text column to view sentiment distribution (Positive/Neutral/Negative) using VADER *(requires `peek-cli[nlp]`)*.
 
 ```bash
 peek sentiment reviews.csv --col review_text

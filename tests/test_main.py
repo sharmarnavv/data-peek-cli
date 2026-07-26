@@ -45,3 +45,19 @@ def test_missing_file():
     # graceful exit
     assert result.exit_code == 1
     assert "Error" in result.stdout
+
+def test_describe_late_float_schema_inference(tmp_path):
+    """Verify describe command handles CSVs with floats appearing after row 100."""
+    csv_file = tmp_path / "late_float.csv"
+    lines = ["id,weight_kg\n"]
+    # 150 rows of integers
+    for i in range(1, 151):
+        lines.append(f"{i},70\n")
+    # row 151 has a float value
+    lines.append("151,57.5\n")
+    csv_file.write_text("".join(lines))
+
+    result = runner.invoke(app, ["describe", str(csv_file)])
+    assert result.exit_code == 0
+    assert "Health Report" in result.stdout
+    assert "Float64" in result.stdout
