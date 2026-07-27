@@ -14,3 +14,6 @@ tests/*.csv
 
 #pytest cache
 .pytest_cache
+
+100m.csv
+monster_csv_maker.py
