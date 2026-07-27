@@ -2,7 +2,9 @@ import typer
 import polars as pl
 import plotext as plt
 import os
+import time
 from pathlib import Path
+from typing import Optional
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
@@ -278,6 +280,123 @@ def sentiment(
 
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
+
+SUPPORTED_FORMATS = {
+    "csv": "csv",
+    "tsv": "tsv",
+    "parquet": "parquet",
+    "pq": "parquet",
+    "jsonl": "jsonl",
+    "ndjson": "jsonl",
+}
+
+def _infer_format(file_path: str) -> Optional[str]:
+    ext = Path(file_path).suffix.lstrip(".").lower()
+    return SUPPORTED_FORMATS.get(ext)
+
+@app.command()
+def convert(
+    input_path: str = typer.Argument(..., help="Path to input dataset file"),
+    output_path: Optional[str] = typer.Argument(None, help="Path to output dataset file"),
+    from_format: Optional[str] = typer.Option(None, "--from", help="Override input format (csv, tsv, parquet, jsonl)"),
+    to_format: Optional[str] = typer.Option(None, "--to", help="Override output format (csv, tsv, parquet, jsonl)"),
+    force: bool = typer.Option(False, "--force", "-f", help="Overwrite output file if it exists"),
+):
+    """
+    Instantly convert dataset between CSV, TSV, Parquet, and JSONL using Polars streaming.
+    """
+    in_file = Path(input_path).expanduser().resolve()
+    if not in_file.exists():
+        console.print(f"[bold red]Error:[/bold red] Input file '{input_path}' not found.")
+        raise typer.Exit(code=1)
+
+    # 1. Determine input format
+    in_fmt_raw = from_format.lower() if from_format else _infer_format(input_path)
+    if not in_fmt_raw or in_fmt_raw not in SUPPORTED_FORMATS:
+        console.print(
+            f"[bold red]Error:[/bold red] Could not infer input format for '{input_path}'. "
+            "Please specify --from (csv, tsv, parquet, jsonl)."
+        )
+        raise typer.Exit(code=1)
+    in_fmt = SUPPORTED_FORMATS[in_fmt_raw]
+
+    # 2. Determine output path and format
+    if output_path is None:
+        if not to_format:
+            console.print("[bold red]Error:[/bold red] Output file path or target format (--to) must be specified.")
+            raise typer.Exit(code=1)
+        out_fmt_raw = to_format.lower()
+        if out_fmt_raw not in SUPPORTED_FORMATS:
+            console.print(f"[bold red]Error:[/bold red] Unsupported target format '{to_format}'. Supported: csv, tsv, parquet, jsonl.")
+            raise typer.Exit(code=1)
+        out_fmt = SUPPORTED_FORMATS[out_fmt_raw]
+        base_stem = Path(input_path).stem
+        out_file = in_file.parent / f"{base_stem}.{out_fmt}"
+        out_display = str(out_file)
+    else:
+        if to_format:
+            out_fmt_raw = to_format.lower()
+        else:
+            out_fmt_raw = _infer_format(output_path)
+
+        if not out_fmt_raw or out_fmt_raw not in SUPPORTED_FORMATS:
+            console.print(
+                f"[bold red]Error:[/bold red] Could not infer output format for '{output_path}'. "
+                "Please specify --to (csv, tsv, parquet, jsonl)."
+            )
+            raise typer.Exit(code=1)
+        out_fmt = SUPPORTED_FORMATS[out_fmt_raw]
+        out_file = Path(output_path).expanduser().resolve()
+        out_display = output_path
+
+    # 3. Check overwrite condition
+    if out_file.exists() and not force:
+        console.print(f"[bold red]Error:[/bold red] Output file '{out_display}' already exists. Use --force / -f to overwrite.")
+        raise typer.Exit(code=1)
+
+    # 4. Stream input lazyframe to output sink
+    try:
+        if in_fmt == "csv":
+            lf = pl.scan_csv(str(in_file), separator=",")
+        elif in_fmt == "tsv":
+            lf = pl.scan_csv(str(in_file), separator="\t")
+        elif in_fmt == "parquet":
+            lf = pl.scan_parquet(str(in_file))
+        elif in_fmt == "jsonl":
+            lf = pl.scan_ndjson(str(in_file))
+        else:
+            raise ValueError(f"Unsupported input format: {in_fmt}")
+
+        start_time = time.perf_counter()
+
+        if out_fmt == "csv":
+            lf.sink_csv(str(out_file), separator=",")
+        elif out_fmt == "tsv":
+            lf.sink_csv(str(out_file), separator="\t")
+        elif out_fmt == "parquet":
+            lf.sink_parquet(str(out_file), compression="zstd")
+        elif out_fmt == "jsonl":
+            lf.sink_ndjson(str(out_file))
+        else:
+            raise ValueError(f"Unsupported output format: {out_fmt}")
+
+        duration = time.perf_counter() - start_time
+        in_size = get_file_size(str(in_file))
+        out_size = get_file_size(str(out_file))
+
+        console.print(
+            f"[bold green]✓ Converted[/bold green] [cyan]{input_path}[/cyan] ({in_size}) → "
+            f"[cyan]{out_display}[/cyan] ({out_size}) in [bold]{duration:.2f}s[/bold]"
+        )
+
+    except Exception as e:
+        if out_file.exists() and not force:
+            try:
+                out_file.unlink()
+            except OSError:
+                pass
+        console.print(f"[bold red]Error during conversion:[/bold red] {e}")
+        raise typer.Exit(code=1)
 
 if __name__ == "__main__":
     app()
