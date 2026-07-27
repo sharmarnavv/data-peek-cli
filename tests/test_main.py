@@ -35,8 +35,11 @@ def test_describe_command(sample_csv):
     # check polars types
     assert "Int64" in result.stdout or "Float64" in result.stdout
     
-    # check missing data flags
+    # check missing data flags and new stat columns
     assert "Missing" in result.stdout
+    assert "Min" in result.stdout
+    assert "Max" in result.stdout
+    assert "Avg" in result.stdout
 
 def test_missing_file():
     """Verify error on missing file."""
